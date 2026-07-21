@@ -308,22 +308,73 @@
       padding: 0.35rem 0;
     }
 
-    .teams-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.4rem;
-      padding: 0.5rem 0 0.25rem;
+    .teams-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.45rem;
+      padding: 0.5rem 0 0.35rem;
     }
 
-    .team-chip {
-      text-align: center;
-      padding: 0.45rem 0.4rem;
-      border-radius: 8px;
-      font-size: 0.78rem;
-      font-weight: 600;
+    details.team-card {
       background: #f8fafc;
       border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
     }
+
+    details.team-card[open] {
+      background: #fff;
+      border-color: #7dd3fc;
+      box-shadow: 0 2px 10px rgba(2, 132, 199, 0.08);
+    }
+
+    details.team-card summary {
+      list-style: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.7rem 0.75rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      user-select: none;
+    }
+
+    details.team-card summary::-webkit-details-marker { display: none; }
+
+    details.team-card summary .chev {
+      margin-left: auto;
+      color: var(--muted);
+      font-size: 0.75rem;
+      transition: transform 0.2s;
+    }
+
+    details.team-card[open] summary .chev { transform: rotate(180deg); }
+
+    details.team-card summary .seed-tag {
+      font-size: 0.7rem;
+      color: var(--muted);
+      font-weight: 700;
+      min-width: 1.5rem;
+    }
+
+    .roster {
+      list-style: none;
+      padding: 0 0.75rem 0.75rem;
+      margin: 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .roster li {
+      padding: 0.45rem 0.15rem;
+      font-size: 0.85rem;
+      color: #334155;
+      border-bottom: 1px solid #f1f5f9;
+      font-weight: 500;
+    }
+
+    .roster li:last-child { border-bottom: none; }
 
     .share-bar {
       position: fixed;
@@ -442,9 +493,9 @@
     </div>
   </div>
 
-  <details class="teams-fold">
-    <summary>View all teams & seeds</summary>
-    <div class="teams-grid" id="teamsGrid"></div>
+  <details class="teams-fold" open>
+    <summary>👥 Teams & rosters — tap a team</summary>
+    <div class="teams-list" id="teamsGrid"></div>
   </details>
 
   <div class="round-tabs" id="roundTabs"></div>
@@ -485,6 +536,49 @@
       Bears: "🐻", Dawgs: "🐶", Dragons: "🐉", LaBubus: "🫧",
       Monkeys: "🐵", Octopus: "🐙", Pandas: "🐼", Pokemon: "⚡",
       Sheep: "🐑", Tigers: "🐯"
+    };
+
+    const ROSTER = {
+      Bears: [
+        "Hareesh Gottipati", "Malia Sharkey", "Sreelatha Deebaguntla",
+        "Dhwani Kapadia", "Parul Gupta"
+      ],
+      Dawgs: [
+        "Kunwar Chopra", "Sudyanti Widjaja", "Yang Lu",
+        "Justin Adair", "Minh-Chau Nguyen"
+      ],
+      Dragons: [
+        "Nageshwar Rao Agastya", "Ajaysai Potluri", "Caleb Smith",
+        "Aishwarya Nigade", "Tarma Grady"
+      ],
+      LaBubus: [
+        "Shana Alterman", "Chandrasekhar Kurali", "Shivani Shinde",
+        "Hau Nguyen", "Gregg Omoto"
+      ],
+      Monkeys: [
+        "Matt Hopkins", "William Wittig", "Ranjit Ponugoti",
+        "Maggy Gallardo", "Abhishek Marathe"
+      ],
+      Octopus: [
+        "Oksana Greydinger", "Quan Gao", "Naresh Kumar Penugonda",
+        "plahiri", "Ethan Tun"
+      ],
+      Pandas: [
+        "Subhayan Basu", "Dilpreet Kohli", "Mala Ai",
+        "Jessica Stewart", "Sidharth Jhawar"
+      ],
+      Pokemon: [
+        "Michael Ngo", "Nick Momenah", "Kiran Vallala",
+        "German Brynza", "rwollnik"
+      ],
+      Sheep: [
+        "Ken Koven", "Raghuveer Gowda Hanumanthe Gowda", "Leanne Serrao",
+        "Eileen Joyce", "Ryan Ward"
+      ],
+      Tigers: [
+        "Bhavya Sindhu Bondada", "Piyoosh Pant", "Aishwarya Supekar",
+        "Gisheeno Mathews", "Luis Roldan"
+      ]
     };
 
     const CHEERS = [
@@ -696,9 +790,19 @@
     }
 
     function renderTeamsGrid() {
-      document.getElementById("teamsGrid").innerHTML = seeds.map((t, i) =>
-        `<div class="team-chip">${EMOJI[t]} #${i + 1} ${t}</div>`
-      ).join("");
+      document.getElementById("teamsGrid").innerHTML = seeds.map((t, i) => {
+        const members = ROSTER[t] || [];
+        return `<details class="team-card">
+          <summary>
+            <span class="seed-tag">#${i + 1}</span>
+            <span>${EMOJI[t] || ""} ${t}</span>
+            <span class="chev">▼</span>
+          </summary>
+          <ul class="roster">
+            ${members.map(m => `<li>${m}</li>`).join("")}
+          </ul>
+        </details>`;
+      }).join("");
     }
 
     function renderSlot(match, slot, idx) {
