@@ -474,7 +474,7 @@
 <body>
   <header>
     <h1>🏓 CPC Summer Event<br>Seattle Pickleball</h1>
-    <p>Single Elimination · 10 Teams</p>
+    <p>Single Elimination · 12 Teams</p>
     <div class="mode-pill view" id="modePill">👀 View only</div>
     <div class="hint" id="hintText">Watching live — scorekeepers update results</div>
   </header>
@@ -528,56 +528,53 @@
     const EDIT_KEY = "cpc_pickleball_edit";
 
     const TEAMS = [
-      "Bears", "Dawgs", "Dragons", "LaBubus", "Monkeys",
-      "Octopus", "Pandas", "Pokemon", "Sheep", "Tigers"
+      "Bears", "Dawgs", "Dragons", "Falcons", "LaBubus", "Monkeys",
+      "Octopus", "Pandas", "Pokemon", "Sheep", "Tigers", "Wolves"
     ];
 
     const EMOJI = {
-      Bears: "🐻", Dawgs: "🐶", Dragons: "🐉", LaBubus: "🫧",
+      Bears: "🐻", Dawgs: "🐶", Dragons: "🐉", Falcons: "🦅", LaBubus: "🫧",
       Monkeys: "🐵", Octopus: "🐙", Pandas: "🐼", Pokemon: "⚡",
-      Sheep: "🐑", Tigers: "🐯"
+      Sheep: "🐑", Tigers: "🐯", Wolves: "🐺"
     };
 
+    // 50 players reshuffled across 12 teams (10×4 + 2×5)
     const ROSTER = {
       Bears: [
-        "Hareesh Gottipati", "Malia Sharkey", "Sreelatha Deebaguntla",
-        "Dhwani Kapadia", "Parul Gupta"
+        "Hareesh Gottipati", "Dilpreet Kohli", "Leanne Serrao", "Caleb Smith"
       ],
       Dawgs: [
-        "Kunwar Chopra", "Sudyanti Widjaja", "Yang Lu",
-        "Justin Adair", "Minh-Chau Nguyen"
+        "Kunwar Chopra", "Jessica Stewart", "Ethan Tun", "Aishwarya Nigade"
       ],
       Dragons: [
-        "Nageshwar Rao Agastya", "Ajaysai Potluri", "Caleb Smith",
-        "Aishwarya Nigade", "Tarma Grady"
+        "Nageshwar Rao Agastya", "Maggy Gallardo", "Yang Lu", "Sidharth Jhawar"
+      ],
+      Falcons: [
+        "Malia Sharkey", "Quan Gao", "Luis Roldan", "German Brynza", "Gregg Omoto"
       ],
       LaBubus: [
-        "Shana Alterman", "Chandrasekhar Kurali", "Shivani Shinde",
-        "Hau Nguyen", "Gregg Omoto"
+        "Shana Alterman", "Piyoosh Pant", "Eileen Joyce", "Abhishek Marathe"
       ],
       Monkeys: [
-        "Matt Hopkins", "William Wittig", "Ranjit Ponugoti",
-        "Maggy Gallardo", "Abhishek Marathe"
+        "Matt Hopkins", "Parul Gupta", "Hau Nguyen", "Raghuveer Gowda Hanumanthe Gowda"
       ],
       Octopus: [
-        "Oksana Greydinger", "Quan Gao", "Naresh Kumar Penugonda",
-        "plahiri", "Ethan Tun"
+        "Oksana Greydinger", "Michael Ngo", "Sudyanti Widjaja", "Gisheeno Mathews"
       ],
       Pandas: [
-        "Subhayan Basu", "Dilpreet Kohli", "Mala Ai",
-        "Jessica Stewart", "Sidharth Jhawar"
+        "Subhayan Basu", "Shivani Shinde", "Justin Adair", "Tarma Grady"
       ],
       Pokemon: [
-        "Michael Ngo", "Nick Momenah", "Kiran Vallala",
-        "German Brynza", "rwollnik"
+        "Nick Momenah", "Chandrasekhar Kurali", "Dhwani Kapadia", "William Wittig"
       ],
       Sheep: [
-        "Ken Koven", "Raghuveer Gowda Hanumanthe Gowda", "Leanne Serrao",
-        "Eileen Joyce", "Ryan Ward"
+        "Ken Koven", "Ajaysai Potluri", "Mala Ai", "Minh-Chau Nguyen"
       ],
       Tigers: [
-        "Bhavya Sindhu Bondada", "Piyoosh Pant", "Aishwarya Supekar",
-        "Gisheeno Mathews", "Luis Roldan"
+        "Bhavya Sindhu Bondada", "Naresh Kumar Penugonda", "Ranjit Ponugoti", "Ryan Ward"
+      ],
+      Wolves: [
+        "Sreelatha Deebaguntla", "Kiran Vallala", "Aishwarya Supekar", "plahiri", "rwollnik"
       ]
     };
 
@@ -587,7 +584,7 @@
     ];
 
     const ROUNDS = [
-      { key: "playIn", title: "Play-In", short: "Play-In" },
+      { key: "round1", title: "Round of 12", short: "R12" },
       { key: "quarters", title: "Quarterfinals", short: "QF" },
       { key: "semis", title: "Semifinals", short: "SF" },
       { key: "final", title: "Final", short: "Final" }
@@ -596,7 +593,7 @@
     let seeds = [...TEAMS];
     let winners = {};
     let structure = buildBracketStructure(seeds);
-    let activeRound = "playIn";
+    let activeRound = "round1";
     let toastTimer;
     let canEdit = sessionStorage.getItem(EDIT_KEY) === "1";
 
@@ -609,18 +606,21 @@
       return a;
     }
 
+    // 12-team single-elim: seeds 1–4 bye; R12 = 5v12, 6v11, 7v10, 8v9
     function buildBracketStructure(ordered) {
       const s = ordered;
       return {
-        playIn: [
-          { id: "p1", label: "Play-In 1", slots: [{ team: s[6], seed: 7 }, { team: s[9], seed: 10 }] },
-          { id: "p2", label: "Play-In 2", slots: [{ team: s[7], seed: 8 }, { team: s[8], seed: 9 }] }
+        round1: [
+          { id: "r1", label: "R12 · 8 vs 9", slots: [{ team: s[7], seed: 8 }, { team: s[8], seed: 9 }] },
+          { id: "r2", label: "R12 · 7 vs 10", slots: [{ team: s[6], seed: 7 }, { team: s[9], seed: 10 }] },
+          { id: "r3", label: "R12 · 6 vs 11", slots: [{ team: s[5], seed: 6 }, { team: s[10], seed: 11 }] },
+          { id: "r4", label: "R12 · 5 vs 12", slots: [{ team: s[4], seed: 5 }, { team: s[11], seed: 12 }] }
         ],
         quarters: [
-          { id: "q1", label: "QF 1", slots: [{ team: s[0], seed: 1, bye: true }, { team: null, seed: null, from: "p1" }] },
-          { id: "q2", label: "QF 2", slots: [{ team: s[1], seed: 2, bye: true }, { team: null, seed: null, from: "p2" }] },
-          { id: "q3", label: "QF 3", slots: [{ team: s[2], seed: 3, bye: true }, { team: s[5], seed: 6 }] },
-          { id: "q4", label: "QF 4", slots: [{ team: s[3], seed: 4, bye: true }, { team: s[4], seed: 5 }] }
+          { id: "q1", label: "QF 1", slots: [{ team: s[0], seed: 1, bye: true }, { team: null, seed: null, from: "r1" }] },
+          { id: "q2", label: "QF 2", slots: [{ team: s[3], seed: 4, bye: true }, { team: null, seed: null, from: "r4" }] },
+          { id: "q3", label: "QF 3", slots: [{ team: s[1], seed: 2, bye: true }, { team: null, seed: null, from: "r2" }] },
+          { id: "q4", label: "QF 4", slots: [{ team: s[2], seed: 3, bye: true }, { team: null, seed: null, from: "r3" }] }
         ],
         semis: [
           { id: "s1", label: "Semi 1", slots: [{ team: null, from: "q1" }, { team: null, from: "q2" }] },
@@ -660,7 +660,7 @@
     }
 
     function getNextMatch() {
-      const order = ["p1","p2","q1","q2","q3","q4","s1","s2","f1"];
+      const order = ["r1","r2","r3","r4","q1","q2","q3","q4","s1","s2","f1"];
       for (const id of order) {
         const m = findMatch(id);
         if (m && isMatchReady(m) && !getWinner(id)) return m;
@@ -918,7 +918,7 @@
     }
 
     function clearDownstream(matchId) {
-      const order = ["p1","p2","q1","q2","q3","q4","s1","s2","f1"];
+      const order = ["r1","r2","r3","r4","q1","q2","q3","q4","s1","s2","f1"];
       const idx = order.indexOf(matchId);
       for (let i = idx + 1; i < order.length; i++) delete winners[order[i]];
     }
@@ -927,7 +927,7 @@
       if (!canEdit) return;
       if (!confirm("Reset the whole bracket?")) return;
       winners = {};
-      activeRound = "playIn";
+      activeRound = "round1";
       renderAll();
       showToast("Bracket reset — let's go! 🏓");
     }
