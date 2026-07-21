@@ -4,20 +4,23 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="theme-color" content="#0f172a" />
+  <meta name="theme-color" content="#f0f7ff" />
   <meta property="og:title" content="CPC Summer Pickleball Bracket — Seattle" />
-  <meta property="og:description" content="Live single-elimination bracket — tap to advance teams!" />
+  <meta property="og:description" content="Live single-elimination bracket for CPC Summer Seattle" />
   <title>CPC Summer Pickleball — Seattle</title>
   <style>
     :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --accent: #f59e0b;
-      --accent2: #38bdf8;
-      --text: #f8fafc;
-      --muted: #94a3b8;
-      --win: #22c55e;
-      --border: #334155;
+      --bg: #f0f7ff;
+      --bg2: #e8f4f0;
+      --card: #ffffff;
+      --accent: #ea580c;
+      --accent2: #0284c7;
+      --text: #0f172a;
+      --muted: #64748b;
+      --win: #16a34a;
+      --win-bg: #dcfce7;
+      --border: #dbe4ef;
+      --live: #0369a1;
       --safe-bottom: env(safe-area-inset-bottom, 0px);
     }
 
@@ -25,7 +28,9 @@
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
-      background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+      background:
+        radial-gradient(ellipse at top, #dbeafe 0%, transparent 55%),
+        linear-gradient(165deg, var(--bg) 0%, var(--bg2) 55%, #fff7ed 100%);
       color: var(--text);
       min-height: 100vh;
       padding: 1rem 1rem calc(5.5rem + var(--safe-bottom));
@@ -38,16 +43,29 @@
       font-weight: 800;
       letter-spacing: -0.02em;
       line-height: 1.2;
-      background: linear-gradient(90deg, var(--accent), #fbbf24, var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: #0c4a6e;
     }
 
     header p { color: var(--muted); margin-top: 0.35rem; font-size: 0.95rem; }
 
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      margin-top: 0.65rem;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+
+    .mode-pill.view { color: var(--muted); }
+    .mode-pill.edit { color: #166534; background: var(--win-bg); border-color: #86efac; }
+
     .hint {
-      margin-top: 0.6rem;
+      margin-top: 0.55rem;
       font-size: 0.82rem;
       color: var(--accent2);
       font-weight: 600;
@@ -69,10 +87,60 @@
       transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
       max-width: 92vw;
       text-align: center;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+      box-shadow: 0 8px 30px rgba(15, 23, 42, 0.15);
     }
 
     .toast.show { transform: translateX(-50%) translateY(0); }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 300;
+      padding: 1rem;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: white;
+      border-radius: 16px;
+      padding: 1.25rem;
+      width: min(360px, 100%);
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.2);
+    }
+
+    .modal h3 { font-size: 1.1rem; margin-bottom: 0.35rem; }
+    .modal p { color: var(--muted); font-size: 0.85rem; margin-bottom: 0.85rem; line-height: 1.4; }
+
+    .modal input {
+      width: 100%;
+      padding: 0.85rem 0.9rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      text-align: center;
+      margin-bottom: 0.75rem;
+    }
+
+    .modal-actions { display: flex; gap: 0.5rem; }
+    .modal-actions button {
+      flex: 1;
+      border: none;
+      border-radius: 10px;
+      padding: 0.75rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .btn-ok { background: var(--accent2); color: white; }
+    .btn-cancel { background: #f1f5f9; color: var(--muted); }
 
     .round-tabs {
       display: flex;
@@ -101,31 +169,31 @@
 
     .round-tab.active {
       background: var(--accent);
-      color: #1c1917;
+      color: white;
       border-color: var(--accent);
     }
 
     .round-tab.has-action {
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.35);
       animation: pulse 1.5s infinite;
     }
 
     @keyframes pulse {
-      0%, 100% { box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.5); }
-      50% { box-shadow: 0 0 0 4px rgba(56, 189, 248, 0.25); }
+      0%, 100% { box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.35); }
+      50% { box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15); }
     }
 
     .round-panel { display: none; }
     .round-panel.active { display: block; }
 
     .up-next {
-      background: rgba(56, 189, 248, 0.12);
-      border: 1px solid rgba(56, 189, 248, 0.35);
+      background: #e0f2fe;
+      border: 1px solid #7dd3fc;
       border-radius: 12px;
       padding: 0.75rem 1rem;
       margin-bottom: 1rem;
       font-size: 0.88rem;
-      color: var(--accent2);
+      color: var(--live);
       font-weight: 600;
       text-align: center;
     }
@@ -136,12 +204,12 @@
       border-radius: 14px;
       margin-bottom: 0.85rem;
       overflow: hidden;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
     }
 
     .match.live {
-      border-color: var(--accent2);
-      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.25);
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
     }
 
     .match-label {
@@ -151,7 +219,7 @@
       text-transform: uppercase;
       letter-spacing: 0.1em;
       color: var(--muted);
-      background: rgba(0,0,0,0.2);
+      background: #f8fafc;
     }
 
     .slot {
@@ -168,12 +236,13 @@
 
     .slot:last-child { border-bottom: none; }
 
-    .slot.clickable:active { transform: scale(0.98); background: rgba(56, 189, 248, 0.2); }
+    .slot.clickable:active { transform: scale(0.98); background: #e0f2fe; }
     .slot.clickable { cursor: pointer; }
+    .slot.clickable:hover { background: #f0f9ff; }
 
     .slot.winner {
-      background: rgba(34, 197, 94, 0.2);
-      color: #86efac;
+      background: var(--win-bg);
+      color: #166534;
       font-weight: 700;
     }
 
@@ -185,7 +254,7 @@
       100% { transform: scale(1); }
     }
 
-    .slot.locked { opacity: 0.45; cursor: default; }
+    .slot.locked { opacity: 0.55; cursor: default; }
 
     .emoji { font-size: 1.5rem; line-height: 1; }
     .seed { font-size: 0.72rem; color: var(--muted); min-width: 1.2rem; }
@@ -197,8 +266,8 @@
       text-align: center;
       padding: 2rem 1rem;
       margin: 1rem 0;
-      background: linear-gradient(135deg, rgba(245,158,11,0.25), rgba(56,189,248,0.2));
-      border: 2px solid var(--accent);
+      background: linear-gradient(135deg, #fff7ed, #e0f2fe);
+      border: 2px solid #fdba74;
       border-radius: 20px;
       animation: pop 0.6s ease;
     }
@@ -212,15 +281,16 @@
       color: var(--accent);
       margin: 0.75rem 0 0.25rem;
     }
-    .champion-screen .name { font-size: clamp(1.8rem, 8vw, 2.5rem); font-weight: 900; }
+    .champion-screen .name { font-size: clamp(1.8rem, 8vw, 2.5rem); font-weight: 900; color: #0c4a6e; }
 
     details.teams-fold {
       max-width: 600px;
       margin: 0 auto 1rem;
-      background: rgba(30, 41, 59, 0.6);
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
       padding: 0.5rem 0.85rem;
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
     }
 
     details.teams-fold summary {
@@ -244,7 +314,8 @@
       border-radius: 8px;
       font-size: 0.78rem;
       font-weight: 600;
-      background: rgba(255,255,255,0.05);
+      background: #f8fafc;
+      border: 1px solid var(--border);
     }
 
     .share-bar {
@@ -253,7 +324,7 @@
       left: 0;
       right: 0;
       padding: 0.65rem 0.75rem calc(0.65rem + var(--safe-bottom));
-      background: rgba(15, 23, 42, 0.95);
+      background: rgba(255, 255, 255, 0.92);
       backdrop-filter: blur(12px);
       border-top: 1px solid var(--border);
       display: flex;
@@ -266,21 +337,23 @@
       border: none;
       border-radius: 12px;
       padding: 0.85rem 0.5rem;
-      font-size: 0.88rem;
+      font-size: 0.85rem;
       font-weight: 700;
       cursor: pointer;
       min-height: 48px;
     }
 
-    .btn-share { background: var(--accent2); color: #0c4a6e; }
-    .btn-copy { background: var(--card); color: var(--text); border: 1px solid var(--border); }
-    .btn-reset { background: transparent; color: var(--muted); border: 1px solid var(--border); flex: 0 0 auto; padding: 0.85rem; }
+    .btn-share { background: var(--accent2); color: white; }
+    .btn-copy { background: #f1f5f9; color: var(--text); border: 1px solid var(--border) !important; }
+    .btn-score { background: #fff7ed; color: var(--accent); border: 1px solid #fdba74 !important; }
+    .btn-reset { background: transparent; color: var(--muted); border: 1px solid var(--border) !important; flex: 0 0 auto; padding: 0.85rem; }
+    .btn-reset[hidden], .edit-only[hidden] { display: none !important; }
 
     .host-tip {
       max-width: 600px;
       margin: 1.5rem auto 0;
       padding: 1rem;
-      background: rgba(30,41,59,0.5);
+      background: rgba(255,255,255,0.7);
       border-radius: 12px;
       border: 1px dashed var(--border);
       font-size: 0.82rem;
@@ -304,7 +377,6 @@
       to { transform: translateY(110vh) rotate(720deg); opacity: 0; }
     }
 
-    /* Desktop: show all rounds side by side */
     @media (min-width: 900px) {
       body { padding-bottom: 2rem; }
       .round-tabs, .up-next { display: none; }
@@ -313,6 +385,7 @@
         gap: 1.5rem;
         overflow-x: auto;
         padding-bottom: 1rem;
+        justify-content: center;
       }
       .round-panel {
         display: block !important;
@@ -331,7 +404,7 @@
       }
       .share-bar {
         position: static;
-        max-width: 600px;
+        max-width: 640px;
         margin: 1.5rem auto 0;
         background: transparent;
         border: none;
@@ -344,10 +417,23 @@
   <header>
     <h1>🏓 CPC Summer Event<br>Seattle Pickleball</h1>
     <p>Single Elimination · 10 Teams</p>
-    <div class="hint">👆 Tap the winning team to advance</div>
+    <div class="mode-pill view" id="modePill">👀 View only</div>
+    <div class="hint" id="hintText">Watching live — scorekeepers update results</div>
   </header>
 
   <div class="toast" id="toast"></div>
+
+  <div class="modal-backdrop" id="pinModal">
+    <div class="modal">
+      <h3>Scorekeeper unlock</h3>
+      <p>Enter the PIN to pick winners. Everyone else stays view-only.</p>
+      <input id="pinInput" type="password" inputmode="numeric" maxlength="12" placeholder="PIN" autocomplete="off" />
+      <div class="modal-actions">
+        <button class="btn-cancel" id="pinCancel">Cancel</button>
+        <button class="btn-ok" id="pinOk">Unlock</button>
+      </div>
+    </div>
+  </div>
 
   <details class="teams-fold">
     <summary>View all teams & seeds</summary>
@@ -367,17 +453,22 @@
   </div>
 
   <div class="share-bar">
-    <button class="btn-share" id="shareBtn">📤 Share Bracket</button>
+    <button class="btn-share" id="shareBtn">📤 Share</button>
     <button class="btn-copy" id="copyBtn">🔗 Copy Link</button>
-    <button class="btn-reset" id="resetBtn" title="Reset">↺</button>
+    <button class="btn-score" id="scoreBtn">🔑 Score</button>
+    <button class="btn-reset edit-only" id="resetBtn" title="Reset" hidden>↺</button>
   </div>
 
   <div class="host-tip">
-    <strong>📱 To share with phones:</strong> Host this file online (GitHub Pages, Netlify Drop, or email the HTML).
-    The <strong>Copy Link</strong> button saves live scores in the URL — anyone opening it sees the same bracket state.
+    <strong>Sharing:</strong> Send the normal link to everyone (view only).
+    Scorekeepers tap <strong>Score</strong> and enter the PIN, then share the updated link after each match.
   </div>
 
   <script>
+    // Casual event PIN — change this before sharing with scorekeepers
+    const SCOREKEEPER_PIN = "cpc2026";
+    const EDIT_KEY = "cpc_pickleball_edit";
+
     const TEAMS = [
       "Bears", "Dawgs", "Dragons", "LaBubus", "Monkeys",
       "Octopus", "Pandas", "Pokemon", "Sheep", "Tigers"
@@ -406,6 +497,7 @@
     let structure = buildBracketStructure(seeds);
     let activeRound = "playIn";
     let toastTimer;
+    let canEdit = sessionStorage.getItem(EDIT_KEY) === "1";
 
     function shuffle(arr) {
       const a = [...arr];
@@ -456,10 +548,7 @@
         if (w) return { name: w.team, seed: w.seed };
         const prev = findMatch(slot.from);
         if (prev) {
-          const label = prev.round === "playIn" ? `Winner ${prev.label}` :
-            prev.round === "quarters" ? `Winner ${prev.label}` :
-            prev.round === "semis" ? `Winner ${prev.label}` : "TBD";
-          return { name: label, seed: null, placeholder: true };
+          return { name: `Winner ${prev.label}`, seed: null, placeholder: true };
         }
       }
       return { name: "TBD", seed: null, placeholder: true };
@@ -487,7 +576,7 @@
     }
 
     function confetti(n = 40) {
-      const colors = ["#f59e0b","#38bdf8","#22c55e","#f472b6","#a78bfa","#fbbf24"];
+      const colors = ["#ea580c","#0284c7","#16a34a","#db2777","#7c3aed","#f59e0b"];
       for (let i = 0; i < n; i++) {
         const el = document.createElement("div");
         el.className = "confetti";
@@ -532,13 +621,71 @@
     }
 
     function syncUrl() {
-      const hash = encodeState();
-      history.replaceState(null, "", "#" + hash);
+      history.replaceState(null, "", "#" + encodeState());
     }
 
     function shareUrl() {
       syncUrl();
       return location.href.split("#")[0] + "#" + encodeState();
+    }
+
+    function updateModeUI() {
+      const pill = document.getElementById("modePill");
+      const hint = document.getElementById("hintText");
+      const resetBtn = document.getElementById("resetBtn");
+      const scoreBtn = document.getElementById("scoreBtn");
+
+      if (canEdit) {
+        pill.className = "mode-pill edit";
+        pill.textContent = "✍️ Scorekeeper mode";
+        hint.textContent = "👆 Tap the winning team to advance";
+        resetBtn.hidden = false;
+        scoreBtn.textContent = "🔒 Lock";
+      } else {
+        pill.className = "mode-pill view";
+        pill.textContent = "👀 View only";
+        hint.textContent = "Watching live — scorekeepers update results";
+        resetBtn.hidden = true;
+        scoreBtn.textContent = "🔑 Score";
+      }
+    }
+
+    function openPinModal() {
+      document.getElementById("pinModal").classList.add("open");
+      const input = document.getElementById("pinInput");
+      input.value = "";
+      setTimeout(() => input.focus(), 50);
+    }
+
+    function closePinModal() {
+      document.getElementById("pinModal").classList.remove("open");
+    }
+
+    function unlockEdit() {
+      const pin = document.getElementById("pinInput").value.trim();
+      if (pin !== SCOREKEEPER_PIN) {
+        showToast("Wrong PIN — try again");
+        return;
+      }
+      canEdit = true;
+      sessionStorage.setItem(EDIT_KEY, "1");
+      closePinModal();
+      updateModeUI();
+      renderAll();
+      showToast("Scorekeeper unlocked ✍️");
+    }
+
+    function lockEdit() {
+      canEdit = false;
+      sessionStorage.removeItem(EDIT_KEY);
+      updateModeUI();
+      renderAll();
+      showToast("Back to view-only 👀");
+    }
+
+    function toggleScoreMode() {
+      if (canEdit) lockEdit();
+      else openPinModal();
     }
 
     function renderTeamsGrid() {
@@ -551,7 +698,7 @@
       const resolved = resolveSlot(slot);
       const w = getWinner(match.id);
       const isWinner = w && w.team === resolved.name;
-      const clickable = isMatchReady(match) && !resolved.placeholder;
+      const clickable = canEdit && isMatchReady(match) && !resolved.placeholder;
       const emoji = EMOJI[resolved.name] || "❓";
       const label = resolved.seed ? `#${resolved.seed} ${resolved.name}` : resolved.name;
       return `<div class="slot ${isWinner ? "winner" : ""} ${clickable ? "clickable" : "locked"}"
@@ -563,12 +710,11 @@
       </div>`;
     }
 
-    function renderMatch(match, roundKey) {
-      const ready = isMatchReady(match);
+    function renderMatch(match) {
       const next = getNextMatch();
       const isLive = next && next.id === match.id;
       const done = !!getWinner(match.id);
-      return `<div class="match ${isLive ? "live" : ""} ${done ? "done" : ""}" data-id="${match.id}">
+      return `<div class="match ${isLive ? "live" : ""}" data-id="${match.id}">
         <div class="match-label">${match.label}${isLive ? " · LIVE" : ""}${done ? " · ✓" : ""}</div>
         ${renderSlot(match, match.slots[0], 0)}
         <div class="vs">VS</div>
@@ -579,9 +725,9 @@
     function renderRoundTabs() {
       const next = getNextMatch();
       document.getElementById("roundTabs").innerHTML = ROUNDS.map(r => {
-        const hasOpen = structure[r.key].some(m => isMatchReady(m) && !getWinner(m.id));
         const isActive = activeRound === r.key;
-        return `<button class="round-tab ${isActive ? "active" : ""} ${hasOpen && next && findMatch(next.id).round === r.key ? "has-action" : ""}"
+        const pulse = next && findMatch(next.id).round === r.key;
+        return `<button class="round-tab ${isActive ? "active" : ""} ${pulse ? "has-action" : ""}"
           data-round="${r.key}">${r.short}</button>`;
       }).join("");
     }
@@ -590,8 +736,7 @@
       const el = document.getElementById("upNext");
       const next = getNextMatch();
       const champ = getWinner("f1");
-      if (champ) { el.hidden = true; return; }
-      if (!next) { el.hidden = true; return; }
+      if (champ || !next) { el.hidden = true; return; }
       const a = resolveSlot(next.slots[0]);
       const b = resolveSlot(next.slots[1]);
       el.hidden = false;
@@ -601,7 +746,7 @@
     function renderPanels() {
       document.getElementById("roundPanels").innerHTML = ROUNDS.map(r => `
         <div class="round-panel ${activeRound === r.key ? "active" : ""}" data-title="${r.title}" data-round="${r.key}">
-          ${structure[r.key].map(m => renderMatch(m, r.key)).join("")}
+          ${structure[r.key].map(m => renderMatch(m)).join("")}
         </div>
       `).join("");
     }
@@ -619,15 +764,20 @@
     }
 
     function renderAll() {
+      updateModeUI();
       renderTeamsGrid();
       renderRoundTabs();
       renderUpNext();
       renderPanels();
       renderChampion();
-      syncUrl();
+      if (canEdit) syncUrl();
     }
 
     function pickWinner(matchId, slotIdx) {
+      if (!canEdit) {
+        showToast("View only — tap Score + PIN to edit");
+        return;
+      }
       const match = findMatch(matchId);
       const resolved = resolveSlot(match.slots[slotIdx]);
       if (resolved.placeholder) return;
@@ -647,7 +797,6 @@
         confetti(12);
       }
 
-      // Auto-advance to next round tab on mobile
       const next = getNextMatch();
       if (next) activeRound = findMatch(next.id).round;
 
@@ -664,20 +813,12 @@
     }
 
     function resetBracket() {
+      if (!canEdit) return;
       if (!confirm("Reset the whole bracket?")) return;
       winners = {};
       activeRound = "playIn";
       renderAll();
       showToast("Bracket reset — let's go! 🏓");
-    }
-
-    function reshuffleSeeds() {
-      seeds = shuffle(TEAMS);
-      structure = buildBracketStructure(seeds);
-      winners = {};
-      activeRound = "playIn";
-      renderAll();
-      showToast("New random seeds! 🎲");
     }
 
     async function shareBracket() {
@@ -700,7 +841,9 @@
       const url = shareUrl();
       try {
         await navigator.clipboard.writeText(url);
-        showToast("Link copied! Send to your group 💬");
+        showToast(canEdit
+          ? "Updated link copied — send to everyone 💬"
+          : "Link copied! Send to your group 💬");
       } catch {
         prompt("Copy this link:", url);
       }
@@ -722,9 +865,16 @@
 
     document.getElementById("shareBtn").addEventListener("click", shareBracket);
     document.getElementById("copyBtn").addEventListener("click", copyLink);
+    document.getElementById("scoreBtn").addEventListener("click", toggleScoreMode);
     document.getElementById("resetBtn").addEventListener("click", resetBracket);
-
-    // Long-press reset area for reshuffle (hidden easter egg) — skip, use teams fold
+    document.getElementById("pinOk").addEventListener("click", unlockEdit);
+    document.getElementById("pinCancel").addEventListener("click", closePinModal);
+    document.getElementById("pinInput").addEventListener("keydown", e => {
+      if (e.key === "Enter") unlockEdit();
+    });
+    document.getElementById("pinModal").addEventListener("click", e => {
+      if (e.target.id === "pinModal") closePinModal();
+    });
 
     if (location.hash && decodeState(location.hash)) {
       showToast("Loaded shared bracket! 🎉");
