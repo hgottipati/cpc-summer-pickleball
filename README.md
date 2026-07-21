@@ -2,4 +2,6 @@
 
 Live single-elimination bracket for the CPC Summer Event.
 
-Open: after Pages is enabled, visit the site URL from the repo Settings → Pages.
+**Open on phones:** https://hgottipati.github.io/cpc-summer-pickleball/
+
+Tap winners to advance. Use **Share Bracket** / **Copy Link** so the URL carries live scores.
