@@ -629,8 +629,8 @@
     }
 
     .btn-share { background: var(--accent2); color: white; }
-    .btn-copy { background: #f1f5f9; color: var(--text); border: 1px solid var(--border) !important; }
-    .btn-score { background: #fff7ed; color: var(--accent); border: 1px solid #fdba74 !important; }
+    .btn-vote { background: #fff7ed; color: var(--accent); border: 1px solid #fdba74 !important; }
+    .btn-score { background: #f1f5f9; color: var(--text); border: 1px solid var(--border) !important; }
     .btn-reset { background: transparent; color: var(--muted); border: 1px solid var(--border) !important; flex: 0 0 auto; padding: 0.85rem; }
     .btn-reset[hidden], .edit-only[hidden] { display: none !important; }
 
@@ -772,14 +772,14 @@
 
   <div class="share-bar">
     <button class="btn-share" id="shareBtn">📤 Share</button>
-    <button class="btn-copy" id="copyBtn">🔗 Copy Link</button>
+    <button class="btn-vote" id="voteBtn">🏆 Vote</button>
     <button class="btn-score" id="scoreBtn">🔑 Score</button>
     <button class="btn-reset edit-only" id="resetBtn" title="Reset" hidden>↺</button>
   </div>
 
   <div class="host-tip">
     <strong>Live scores:</strong> Scorekeepers unlock with PIN and tap winners.
-    <strong>Champion picks</strong> are optional — scroll to the bottom to join the prize pool.
+    <strong>Champion picks</strong> are optional — tap <strong>Vote</strong> below to join the prize pool.
   </div>
 
   <script>
@@ -1500,8 +1500,18 @@
       pickWinner(slot.dataset.match, Number(slot.dataset.idx));
     });
 
+    function openVotePanel() {
+      const panel = document.getElementById("picksPanel");
+      panel.open = true;
+      panel.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => {
+        const nameInput = document.getElementById("pickName");
+        if (!picksAreLocked() && nameInput && !nameInput.disabled) nameInput.focus();
+      }, 350);
+    }
+
     document.getElementById("shareBtn").addEventListener("click", shareBracket);
-    document.getElementById("copyBtn").addEventListener("click", copyLink);
+    document.getElementById("voteBtn").addEventListener("click", openVotePanel);
     document.getElementById("scoreBtn").addEventListener("click", toggleScoreMode);
     document.getElementById("resetBtn").addEventListener("click", resetBracket);
     document.getElementById("pinOk").addEventListener("click", unlockEdit);
