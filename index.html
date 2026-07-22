@@ -603,6 +603,23 @@
       line-height: 1.4;
     }
 
+    .btn-clear-votes {
+      display: none;
+      width: 100%;
+      margin-top: 0.75rem;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 0.7rem;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-weight: 700;
+      font-size: 0.85rem;
+      cursor: pointer;
+      min-height: 44px;
+    }
+
+    .btn-clear-votes.visible { display: block; }
+
     .share-bar {
       position: fixed;
       bottom: 0;
@@ -768,6 +785,7 @@
       <h4>🎁 Prize circle</h4>
       <p id="prizeText"></p>
     </div>
+    <button type="button" class="btn-clear-votes" id="clearVotesBtn" hidden>Clear all votes</button>
   </details>
 
   <div class="share-bar">
@@ -1054,6 +1072,19 @@
               }
             }
             picks = { ...remotePicks, ...picks };
+          } else if (mode === "clearPicks") {
+            const nextSeeds = (remote.s || []).map(i => TEAMS[i]).filter(Boolean);
+            if (nextSeeds.length === TEAMS.length) {
+              seeds = nextSeeds;
+              structure = buildBracketStructure(seeds);
+              winners = {};
+              if (remote.w) {
+                for (const [id, idx] of Object.entries(remote.w)) {
+                  if (TEAMS[idx]) winners[id] = { team: TEAMS[idx], seed: seeds.indexOf(TEAMS[idx]) + 1 };
+                }
+              }
+            }
+            picks = {};
           } else {
             // Scorekeeper: keep local bracket, merge remote picks
             picks = { ...remotePicks, ...picks };
@@ -1337,7 +1368,7 @@
       `).join("");
 
       const myName = localStorage.getItem(PICK_NAME_KEY) || "";
-      const myTeam = picks[myName] || localStorage.getItem(PICK_TEAM_KEY) || "";
+      const myTeam = picks[myName];
       const myPickEl = document.getElementById("myPick");
       if (myName && myTeam && TEAMS.includes(myTeam)) {
         myPickEl.textContent = locked
@@ -1346,6 +1377,15 @@
         myPickEl.classList.add("visible");
       } else {
         myPickEl.classList.remove("visible");
+      }
+
+      const clearBtn = document.getElementById("clearVotesBtn");
+      if (canEdit) {
+        clearBtn.hidden = false;
+        clearBtn.classList.add("visible");
+      } else {
+        clearBtn.hidden = true;
+        clearBtn.classList.remove("visible");
       }
 
       const champ = getWinner("f1");
@@ -1460,6 +1500,19 @@
       showToast("Bracket reset — let's go! 🏓");
     }
 
+    async function clearAllVotes() {
+      if (!canEdit) return;
+      if (!confirm("Clear ALL champion votes for everyone?")) return;
+      picks = {};
+      localStorage.removeItem(PICK_NAME_KEY);
+      localStorage.removeItem(PICK_TEAM_KEY);
+      document.getElementById("pickName").value = "";
+      document.getElementById("pickTeam").value = "";
+      renderPicks();
+      await pushLiveState({ mode: "clearPicks" });
+      showToast("All votes cleared 🧹");
+    }
+
     async function shareBracket() {
       const url = shareUrl();
       const champ = getWinner("f1");
@@ -1514,6 +1567,7 @@
     document.getElementById("voteBtn").addEventListener("click", openVotePanel);
     document.getElementById("scoreBtn").addEventListener("click", toggleScoreMode);
     document.getElementById("resetBtn").addEventListener("click", resetBracket);
+    document.getElementById("clearVotesBtn").addEventListener("click", clearAllVotes);
     document.getElementById("pinOk").addEventListener("click", unlockEdit);
     document.getElementById("pinCancel").addEventListener("click", closePinModal);
     document.getElementById("pinInput").addEventListener("keydown", e => {
