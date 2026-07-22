@@ -576,7 +576,6 @@
     const EDIT_KEY = "cpc_pickleball_edit";
     // Shared live store — everyone reads/writes the same bracket here
     const SYNC_URL = "https://jsonblob.com/api/jsonBlob/019f872e-3765-7e0a-be5a-7db131ed4f36";
-    const GITHUB_STATE_URL = "https://raw.githubusercontent.com/hgottipati/cpc-summer-pickleball/main/bracket-state.json";
     const POLL_MS = 2500;
 
     const TEAMS = [
@@ -833,32 +832,29 @@
     async function pullLiveState({ silent } = {}) {
       if (pushInFlight || applyingRemote) return false;
       try {
-        let data = null;
-        try {
-          const res = await fetch(SYNC_URL + "?" + Date.now(), {
-            cache: "no-store",
-            headers: { Accept: "application/json" }
-          });
-          if (res.ok) data = await res.json();
-        } catch (_) { /* fall through */ }
-
-        if (!data) {
-          const res2 = await fetch(GITHUB_STATE_URL + "?t=" + Date.now(), { cache: "no-store" });
-          if (res2.ok) data = await res2.json();
-        }
+        const res = await fetch(SYNC_URL + "?" + Date.now(), {
+          cache: "no-store",
+          headers: { Accept: "application/json" }
+        });
+        if (!res.ok) return false;
+        const data = await res.json();
         if (!data) return false;
 
         const sig = stateSignature(data);
         if (sig === lastRemoteSig) return false;
 
+        const firstLoad = !lastRemoteSig;
         applyingRemote = true;
         const ok = applyStateObject(data);
         if (ok) {
-          const next = getNextMatch();
-          if (next) activeRound = findMatch(next.id).round;
-          else if (getWinner("f1")) activeRound = "final";
+          // Only auto-jump tabs on first load — never steal the tab while browsing
+          if (firstLoad) {
+            const next = getNextMatch();
+            if (next) activeRound = findMatch(next.id).round;
+            else if (getWinner("f1")) activeRound = "final";
+          }
           renderAll();
-          if (!silent) showToast("Bracket updated 🔄");
+          if (!silent && !firstLoad) showToast("Bracket updated 🔄");
         }
         applyingRemote = false;
         return ok;
