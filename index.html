@@ -566,8 +566,9 @@
   </div>
 
   <div class="host-tip">
-    <strong>Sharing:</strong> Send the normal link to everyone (view only).
-    Scorekeepers tap <strong>Score</strong> and enter the PIN, then share the updated link after each match.
+    <strong>How scores sync:</strong> This site has no live server — scores travel inside the shared link.
+    After each match, scorekeepers tap <strong>Share</strong> (or Copy Link) and send the updated URL.
+    Phones must open that new link (Slack/iMessage often drop old <code>#</code> links — we now use a safer <code>?b=</code> link).
   </div>
 
   <script>
@@ -749,12 +750,18 @@
           Object.entries(winners).map(([k, v]) => [k, TEAMS.indexOf(v.team)])
         )
       };
-      return btoa(JSON.stringify(payload));
+      return btoa(JSON.stringify(payload))
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=+$/, "");
     }
 
-    function decodeState(hash) {
+    function decodeState(raw) {
       try {
-        const data = JSON.parse(atob(hash.replace(/^#/, "")));
+        let s = String(raw || "").replace(/^#/, "").replace(/^b=/, "");
+        s = s.replace(/-/g, "+").replace(/_/g, "/");
+        while (s.length % 4) s += "=";
+        const data = JSON.parse(atob(s));
         if (!data.s || !Array.isArray(data.s)) return false;
         seeds = data.s.map(i => TEAMS[i]).filter(Boolean);
         if (seeds.length !== TEAMS.length) return false;
@@ -770,12 +777,34 @@
     }
 
     function syncUrl() {
-      history.replaceState(null, "", "#" + encodeState());
+      const url = new URL(location.href);
+      url.searchParams.set("b", encodeState());
+      url.hash = "";
+      history.replaceState(null, "", url.pathname + url.search);
     }
 
     function shareUrl() {
       syncUrl();
-      return location.href.split("#")[0] + "#" + encodeState();
+      const url = new URL(location.href);
+      url.searchParams.set("b", encodeState());
+      url.hash = "";
+      return url.origin + url.pathname + "?" + url.searchParams.toString();
+    }
+
+    function loadStateFromUrl() {
+      const params = new URLSearchParams(location.search);
+      if (params.get("b") && decodeState(params.get("b"))) return true;
+      if (location.hash.length > 1 && decodeState(location.hash.slice(1))) return true;
+      return false;
+    }
+
+    async function copyLinkQuiet() {
+      try {
+        await navigator.clipboard.writeText(shareUrl());
+        return true;
+      } catch {
+        return false;
+      }
     }
 
     function updateModeUI() {
@@ -787,13 +816,13 @@
       if (canEdit) {
         pill.className = "mode-pill edit";
         pill.textContent = "✍️ Scorekeeper mode";
-        hint.textContent = "👆 Tap the winning team to advance";
+        hint.textContent = "Tap winner → then Share/Copy link for phones";
         resetBtn.hidden = false;
         scoreBtn.textContent = "🔒 Lock";
       } else {
         pill.className = "mode-pill view";
         pill.textContent = "👀 View only";
-        hint.textContent = "Watching live — scorekeepers update results";
+        hint.textContent = "Open the latest shared link to see scores";
         resetBtn.hidden = true;
         scoreBtn.textContent = "🔑 Score";
       }
@@ -932,7 +961,7 @@
       if (canEdit) syncUrl();
     }
 
-    function pickWinner(matchId, slotIdx) {
+    async function pickWinner(matchId, slotIdx) {
       if (!canEdit) {
         showToast("View only — tap Score + PIN to edit");
         return;
@@ -945,9 +974,6 @@
       winners[matchId] = { team: resolved.name, seed: resolved.seed };
       clearDownstream(matchId);
       vibrate();
-
-      const cheer = CHEERS[Math.floor(Math.random() * CHEERS.length)];
-      showToast(`${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! ${cheer}`);
 
       if (wasFinal) {
         confetti(80);
@@ -963,6 +989,13 @@
 
       const slotEl = document.querySelector(`[data-match="${matchId}"][data-idx="${slotIdx}"]`);
       if (slotEl) slotEl.classList.add("winner-pop");
+
+      const copied = await copyLinkQuiet();
+      showToast(
+        copied
+          ? `${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! Link copied — paste to phones`
+          : `${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! Tap Share to update phones`
+      );
     }
 
     function clearDownstream(matchId) {
@@ -1035,7 +1068,7 @@
       if (e.target.id === "pinModal") closePinModal();
     });
 
-    if (location.hash && decodeState(location.hash)) {
+    if (loadStateFromUrl()) {
       showToast("Loaded shared bracket! 🎉");
     }
 
