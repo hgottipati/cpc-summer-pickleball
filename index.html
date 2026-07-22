@@ -728,7 +728,24 @@
     </span>
   </a>
 
-  <details class="picks-panel" id="picksPanel" open>
+  <details class="teams-fold">
+    <summary>Teams & players — tap a team to see names</summary>
+    <div class="teams-list" id="teamsGrid"></div>
+  </details>
+
+  <div class="round-tabs" id="roundTabs"></div>
+  <div class="up-next" id="upNext" hidden></div>
+
+  <div class="round-panels" id="roundPanels"></div>
+
+  <div class="champion-screen" id="championScreen">
+    <div class="trophy">🏆</div>
+    <h2>Champions!</h2>
+    <div class="name" id="championName"></div>
+    <p style="margin-top:0.75rem;color:var(--muted);font-size:0.9rem" id="championSub"></p>
+  </div>
+
+  <details class="picks-panel" id="picksPanel">
     <summary>Optional: pick the champion 🏆</summary>
     <p class="picks-blurb">
       For fun — type any name, pick who you think wins it all.
@@ -753,23 +770,6 @@
     </div>
   </details>
 
-  <details class="teams-fold" open>
-    <summary>Teams & players — tap a team to see names</summary>
-    <div class="teams-list" id="teamsGrid"></div>
-  </details>
-
-  <div class="round-tabs" id="roundTabs"></div>
-  <div class="up-next" id="upNext" hidden></div>
-
-  <div class="round-panels" id="roundPanels"></div>
-
-  <div class="champion-screen" id="championScreen">
-    <div class="trophy">🏆</div>
-    <h2>Champions!</h2>
-    <div class="name" id="championName"></div>
-    <p style="margin-top:0.75rem;color:var(--muted);font-size:0.9rem" id="championSub"></p>
-  </div>
-
   <div class="share-bar">
     <button class="btn-share" id="shareBtn">📤 Share</button>
     <button class="btn-copy" id="copyBtn">🔗 Copy Link</button>
@@ -779,7 +779,7 @@
 
   <div class="host-tip">
     <strong>Live scores:</strong> Scorekeepers unlock with PIN and tap winners.
-    <strong>Champion picks</strong> are optional — type any nickname and back a team for the prize pool.
+    <strong>Champion picks</strong> are optional — scroll to the bottom to join the prize pool.
   </div>
 
   <script>
