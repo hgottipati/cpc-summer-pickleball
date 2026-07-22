@@ -488,6 +488,26 @@
 
     .my-pick.visible { display: block; }
 
+    .picks-locked-banner {
+      display: none;
+      margin-bottom: 0.75rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 10px;
+      background: #fef3c7;
+      border: 1px solid #fcd34d;
+      color: #92400e;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-align: center;
+    }
+
+    .picks-locked-banner.visible { display: block; }
+
+    .pick-form.is-locked {
+      opacity: 0.45;
+      pointer-events: none;
+    }
+
     .odds-title {
       font-size: 0.75rem;
       font-weight: 700;
@@ -711,11 +731,13 @@
   <details class="picks-panel" id="picksPanel" open>
     <summary>Optional: pick the champion 🏆</summary>
     <p class="picks-blurb">
-      For fun — type any nickname, pick who you think wins it all.
-      Correct guesses share the bragging rights (and the prize). Skip if you want.
+      For fun — type any name, pick who you think wins it all.
+      Correct guesses share the prize. Skip if you want.
+      Picks lock when the first Quarterfinal is scored.
     </p>
-    <div class="pick-form">
-      <input id="pickName" type="text" maxlength="40" placeholder="Your nickname (anything you like)" autocomplete="nickname" />
+    <div class="picks-locked-banner" id="picksLockedBanner" hidden>🔒 Picks are locked — Quarterfinals are underway</div>
+    <div class="pick-form" id="pickForm">
+      <input id="pickName" type="text" maxlength="40" placeholder="Your name (anything you like)" autocomplete="nickname" />
       <select id="pickTeam">
         <option value="">Pick a team to win…</option>
       </select>
@@ -1250,7 +1272,35 @@
       if (savedTeam && TEAMS.includes(savedTeam)) select.value = savedTeam;
     }
 
+    function picksAreLocked() {
+      // Lock as soon as any quarterfinal has a result
+      return !!(getWinner("q1") || getWinner("q2") || getWinner("q3") || getWinner("q4"));
+    }
+
     function renderPicks() {
+      const locked = picksAreLocked();
+      const form = document.getElementById("pickForm");
+      const banner = document.getElementById("picksLockedBanner");
+      const submitBtn = document.getElementById("pickSubmit");
+
+      if (locked) {
+        form.classList.add("is-locked");
+        banner.hidden = false;
+        banner.classList.add("visible");
+        submitBtn.textContent = "Picks locked";
+        document.getElementById("pickName").disabled = true;
+        document.getElementById("pickTeam").disabled = true;
+        submitBtn.disabled = true;
+      } else {
+        form.classList.remove("is-locked");
+        banner.hidden = true;
+        banner.classList.remove("visible");
+        submitBtn.textContent = "Submit my pick";
+        document.getElementById("pickName").disabled = false;
+        document.getElementById("pickTeam").disabled = false;
+        submitBtn.disabled = false;
+      }
+
       const entries = Object.entries(picks).filter(([, team]) => TEAMS.includes(team));
       const total = entries.length;
       const counts = {};
@@ -1290,7 +1340,9 @@
       const myTeam = picks[myName] || localStorage.getItem(PICK_TEAM_KEY) || "";
       const myPickEl = document.getElementById("myPick");
       if (myName && myTeam && TEAMS.includes(myTeam)) {
-        myPickEl.textContent = `Your pick: ${myName} → ${EMOJI[myTeam] || ""} ${myTeam}`;
+        myPickEl.textContent = locked
+          ? `Your locked pick: ${myName} → ${EMOJI[myTeam] || ""} ${myTeam}`
+          : `Your pick: ${myName} → ${EMOJI[myTeam] || ""} ${myTeam}`;
         myPickEl.classList.add("visible");
       } else {
         myPickEl.classList.remove("visible");
@@ -1321,6 +1373,10 @@
     }
 
     async function submitPick() {
+      if (picksAreLocked()) {
+        showToast("Picks are locked — Quarterfinals already started");
+        return;
+      }
       const name = (document.getElementById("pickName").value || "").trim();
       const team = document.getElementById("pickTeam").value;
       if (!name) {
