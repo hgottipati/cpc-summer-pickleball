@@ -566,15 +566,18 @@
   </div>
 
   <div class="host-tip">
-    <strong>How scores sync:</strong> This site has no live server — scores travel inside the shared link.
-    After each match, scorekeepers tap <strong>Share</strong> (or Copy Link) and send the updated URL.
-    Phones must open that new link (Slack/iMessage often drop old <code>#</code> links — we now use a safer <code>?b=</code> link).
+    <strong>Live scores:</strong> Scorekeepers unlock with PIN and tap winners.
+    Everyone else just refreshes (or waits a couple seconds) — the bracket updates for all.
   </div>
 
   <script>
     // Casual event PIN — change this before sharing with scorekeepers
     const SCOREKEEPER_PIN = "cpc2026";
     const EDIT_KEY = "cpc_pickleball_edit";
+    // Shared live store — everyone reads/writes the same bracket here
+    const SYNC_URL = "https://jsonblob.com/api/jsonBlob/019f872e-3765-7e0a-be5a-7db131ed4f36";
+    const GITHUB_STATE_URL = "https://raw.githubusercontent.com/hgottipati/cpc-summer-pickleball/main/bracket-state.json";
+    const POLL_MS = 2500;
 
     const TEAMS = [
       "Bears", "Dawgs", "Dragons", "LaBubus", "Monkeys",
@@ -648,6 +651,9 @@
     let activeRound = "playIn";
     let toastTimer;
     let canEdit = sessionStorage.getItem(EDIT_KEY) === "1";
+    let lastRemoteSig = "";
+    let pushInFlight = false;
+    let applyingRemote = false;
 
     function shuffle(arr) {
       const a = [...arr];
@@ -743,14 +749,38 @@
       if (navigator.vibrate) navigator.vibrate(30);
     }
 
-    function encodeState() {
-      const payload = {
+    function statePayload() {
+      return {
         s: seeds.map(t => TEAMS.indexOf(t)),
         w: Object.fromEntries(
           Object.entries(winners).map(([k, v]) => [k, TEAMS.indexOf(v.team)])
-        )
+        ),
+        v: Date.now()
       };
-      return btoa(JSON.stringify(payload))
+    }
+
+    function stateSignature(data) {
+      return JSON.stringify({ s: data.s, w: data.w || {} });
+    }
+
+    function applyStateObject(data) {
+      if (!data || !data.s || !Array.isArray(data.s)) return false;
+      const nextSeeds = data.s.map(i => TEAMS[i]).filter(Boolean);
+      if (nextSeeds.length !== TEAMS.length) return false;
+      seeds = nextSeeds;
+      structure = buildBracketStructure(seeds);
+      winners = {};
+      if (data.w) {
+        for (const [id, idx] of Object.entries(data.w)) {
+          if (TEAMS[idx]) winners[id] = { team: TEAMS[idx], seed: seeds.indexOf(TEAMS[idx]) + 1 };
+        }
+      }
+      lastRemoteSig = stateSignature(data);
+      return true;
+    }
+
+    function encodeState() {
+      return btoa(JSON.stringify(statePayload()))
         .replace(/\+/g, "-")
         .replace(/\//g, "_")
         .replace(/=+$/, "");
@@ -761,50 +791,90 @@
         let s = String(raw || "").replace(/^#/, "").replace(/^b=/, "");
         s = s.replace(/-/g, "+").replace(/_/g, "/");
         while (s.length % 4) s += "=";
-        const data = JSON.parse(atob(s));
-        if (!data.s || !Array.isArray(data.s)) return false;
-        seeds = data.s.map(i => TEAMS[i]).filter(Boolean);
-        if (seeds.length !== TEAMS.length) return false;
-        structure = buildBracketStructure(seeds);
-        winners = {};
-        if (data.w) {
-          for (const [id, idx] of Object.entries(data.w)) {
-            if (TEAMS[idx]) winners[id] = { team: TEAMS[idx], seed: seeds.indexOf(TEAMS[idx]) + 1 };
-          }
-        }
-        return true;
+        return applyStateObject(JSON.parse(atob(s)));
       } catch { return false; }
     }
 
     function syncUrl() {
       const url = new URL(location.href);
-      url.searchParams.set("b", encodeState());
+      url.searchParams.delete("b");
       url.hash = "";
-      history.replaceState(null, "", url.pathname + url.search);
+      history.replaceState(null, "", url.pathname + (url.search || ""));
     }
 
     function shareUrl() {
-      syncUrl();
-      const url = new URL(location.href);
-      url.searchParams.set("b", encodeState());
-      url.hash = "";
-      return url.origin + url.pathname + "?" + url.searchParams.toString();
+      return location.origin + location.pathname;
     }
 
-    function loadStateFromUrl() {
-      const params = new URLSearchParams(location.search);
-      if (params.get("b") && decodeState(params.get("b"))) return true;
-      if (location.hash.length > 1 && decodeState(location.hash.slice(1))) return true;
-      return false;
-    }
-
-    async function copyLinkQuiet() {
+    async function pushLiveState() {
+      if (pushInFlight) return;
+      pushInFlight = true;
+      const payload = statePayload();
+      const body = JSON.stringify(payload);
       try {
-        await navigator.clipboard.writeText(shareUrl());
-        return true;
-      } catch {
+        const res = await fetch(SYNC_URL, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json"
+          },
+          body
+        });
+        if (!res.ok) throw new Error("sync write failed " + res.status);
+        lastRemoteSig = stateSignature(payload);
+      } catch (err) {
+        console.warn(err);
+        showToast("Couldn’t save live score — check connection");
+      } finally {
+        pushInFlight = false;
+      }
+    }
+
+    async function pullLiveState({ silent } = {}) {
+      if (pushInFlight || applyingRemote) return false;
+      try {
+        let data = null;
+        try {
+          const res = await fetch(SYNC_URL + "?" + Date.now(), {
+            cache: "no-store",
+            headers: { Accept: "application/json" }
+          });
+          if (res.ok) data = await res.json();
+        } catch (_) { /* fall through */ }
+
+        if (!data) {
+          const res2 = await fetch(GITHUB_STATE_URL + "?t=" + Date.now(), { cache: "no-store" });
+          if (res2.ok) data = await res2.json();
+        }
+        if (!data) return false;
+
+        const sig = stateSignature(data);
+        if (sig === lastRemoteSig) return false;
+
+        applyingRemote = true;
+        const ok = applyStateObject(data);
+        if (ok) {
+          const next = getNextMatch();
+          if (next) activeRound = findMatch(next.id).round;
+          else if (getWinner("f1")) activeRound = "final";
+          renderAll();
+          if (!silent) showToast("Bracket updated 🔄");
+        }
+        applyingRemote = false;
+        return ok;
+      } catch (err) {
+        applyingRemote = false;
+        console.warn(err);
         return false;
       }
+    }
+
+    function startLiveSync() {
+      pullLiveState({ silent: true });
+      setInterval(() => pullLiveState({ silent: true }), POLL_MS);
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") pullLiveState({ silent: true });
+      });
     }
 
     function updateModeUI() {
@@ -816,13 +886,13 @@
       if (canEdit) {
         pill.className = "mode-pill edit";
         pill.textContent = "✍️ Scorekeeper mode";
-        hint.textContent = "Tap winner → then Share/Copy link for phones";
+        hint.textContent = "👆 Tap the winning team — scores sync live for everyone";
         resetBtn.hidden = false;
         scoreBtn.textContent = "🔒 Lock";
       } else {
         pill.className = "mode-pill view";
         pill.textContent = "👀 View only";
-        hint.textContent = "Open the latest shared link to see scores";
+        hint.textContent = "Live bracket — refresh anytime for latest scores";
         resetBtn.hidden = true;
         scoreBtn.textContent = "🔑 Score";
       }
@@ -958,7 +1028,6 @@
       renderUpNext();
       renderPanels();
       renderChampion();
-      if (canEdit) syncUrl();
     }
 
     async function pickWinner(matchId, slotIdx) {
@@ -990,12 +1059,8 @@
       const slotEl = document.querySelector(`[data-match="${matchId}"][data-idx="${slotIdx}"]`);
       if (slotEl) slotEl.classList.add("winner-pop");
 
-      const copied = await copyLinkQuiet();
-      showToast(
-        copied
-          ? `${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! Link copied — paste to phones`
-          : `${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! Tap Share to update phones`
-      );
+      await pushLiveState();
+      showToast(`${EMOJI[resolved.name] || "🎉"} ${resolved.name} wins! Synced live`);
     }
 
     function clearDownstream(matchId) {
@@ -1004,12 +1069,13 @@
       for (let i = idx + 1; i < order.length; i++) delete winners[order[i]];
     }
 
-    function resetBracket() {
+    async function resetBracket() {
       if (!canEdit) return;
       if (!confirm("Reset the whole bracket?")) return;
       winners = {};
       activeRound = "playIn";
       renderAll();
+      await pushLiveState();
       showToast("Bracket reset — let's go! 🏓");
     }
 
@@ -1033,9 +1099,7 @@
       const url = shareUrl();
       try {
         await navigator.clipboard.writeText(url);
-        showToast(canEdit
-          ? "Updated link copied — send to everyone 💬"
-          : "Link copied! Send to your group 💬");
+        showToast("Link copied! Same URL for everyone 💬");
       } catch {
         prompt("Copy this link:", url);
       }
@@ -1068,10 +1132,9 @@
       if (e.target.id === "pinModal") closePinModal();
     });
 
-    if (loadStateFromUrl()) {
-      showToast("Loaded shared bracket! 🎉");
-    }
-
+    // One shared live URL for everyone
+    syncUrl();
+    startLiveSync();
     renderAll();
   </script>
 </body>
