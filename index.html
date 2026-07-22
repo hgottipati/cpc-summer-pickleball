@@ -416,6 +416,45 @@
       font-size: 0.78rem;
     }
 
+    .event-rules {
+      max-width: 600px;
+      margin: 0 auto 1rem;
+      padding: 0.85rem 1rem;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 12px;
+      color: var(--text);
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+
+    .event-rules strong {
+      display: block;
+      color: #1d4ed8;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .event-rules ul {
+      margin: 0;
+      padding-left: 1.15rem;
+    }
+
+    .event-rules li {
+      margin-bottom: 0.35rem;
+    }
+
+    .event-rules li:last-child {
+      margin-bottom: 0;
+    }
+
+    .event-rules li strong {
+      display: inline;
+      color: inherit;
+      font-size: inherit;
+      margin: 0;
+    }
+
     .picks-panel {
       max-width: 600px;
       margin: 0 auto 1rem;
@@ -745,6 +784,15 @@
     </span>
   </a>
 
+  <div class="event-rules">
+    <strong>How team play works</strong>
+    <ul>
+      <li>Each team designates <strong>2 players</strong> to compete in the tournament.</li>
+      <li>Prizes go to the <strong>top 2</strong> finishing teams — and <strong>everyone</strong> on those teams gets a prize.</li>
+      <li>If no one on your team wants to play, your team <strong>forfeits</strong>.</li>
+    </ul>
+  </div>
+
   <details class="teams-fold">
     <summary>Teams & players — tap a team to see names</summary>
     <div class="teams-list" id="teamsGrid"></div>
@@ -765,9 +813,9 @@
   <details class="picks-panel" id="picksPanel">
     <summary>Optional: pick the champion 🏆</summary>
     <p class="picks-blurb">
-      For fun — type any name, pick who you think wins it all.
-      Correct guesses share the prize. Skip if you want.
-      Picks lock when the first Quarterfinal is scored.
+      Optional — type any name and pick who you think wins it all. Correct guesses share the prize.
+      You can change your pick until the <strong>first Quarterfinal</strong> is scored (then votes lock).
+      To update: enter the <strong>same name</strong> and submit again.
     </p>
     <div class="picks-locked-banner" id="picksLockedBanner" hidden>🔒 Picks are locked — Quarterfinals are underway</div>
     <div class="pick-form" id="pickForm">
